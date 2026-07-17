@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Quebra&Caixa · Controle de Vendas KitKat</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23E2231A%22/><rect x=%2222%22 y=%2230%22 width=%2214%22 height=%2240%22 rx=%224%22 fill=%22%23fff%22/><rect x=%2243%22 y=%2230%22 width=%2214%22 height=%2240%22 rx=%224%22 fill=%22%23fff%22/><rect x=%2264%22 y=%2230%22 width=%2214%22 height=%2240%22 rx=%224%22 fill=%22%23fff%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Inter:wght@400;500;600;700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   QUEBRA&CAIXA — design tokens
+   Paleta: vermelho KitKat + "chocolate" escuro + creme papel
+   Tipografia: Baloo 2 (display, arredondada, "docinho") + Inter (corpo)
+   Assinatura visual: barra de KitKat "quebrada" em gomos —
+   usada no logo, nos divisores e na barra de navegação inferior,
+   onde a aba ativa ganha uma "mordida" (bite) no topo.
+   ============================================================ */
+:root{
+  --red:        #FF4438;
+  --red-dark:   #C4291D;
+  --choc:       #150F0D;   /* fundo mais escuro — navbar */
+  --choc-soft:  #2A1E1A;
+  --cream:      #1B1411;   /* fundo geral, tema escuro */
+  --paper:      #241B18;   /* cards */
+  --ink:        #F5EBE6;
+  --ink-soft:   #A6928C;
+  --line:       #3A2C27;
+  --green:      #39D081;
+  --green-bg:   #17311F;
+  --amber:      #F2A84C;
+  --amber-bg:   #3A2811;
+  --radius:     16px;
+  --radius-sm:  10px;
+  --shadow:     0 8px 24px -12px rgba(0,0,0,.55);
+  --nav-h:      72px;
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; }
+body{
+  background:var(--cream);
+  color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;
+  min-height:100vh;
+  padding-bottom:calc(var(--nav-h) + 18px);
+  overscroll-behavior-y:contain;
+}
+h1,h2,h3,.display{ font-family:'Baloo 2',system-ui,sans-serif; }
+.num{ font-family:'DM Mono',monospace; font-variant-numeric:tabular-nums; }
+button, input, select{ font-family:inherit; }
+::selection{ background:var(--red); color:#fff; }
+
+/* ---------- topo ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:var(--red);
+  color:#fff;
+  padding:16px 18px 20px;
+  border-bottom-left-radius:22px;
+  border-bottom-right-radius:22px;
+  box-shadow:var(--shadow);
+}
+.topbar-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.brand{ display:flex; align-items:center; gap:10px; }
+.brand-mark{ display:flex; gap:3px; }
+.brand-mark span{ width:8px; height:26px; background:#fff; border-radius:3px; opacity:.95; }
+.brand-text h1{ margin:0; font-size:19px; font-weight:700; line-height:1.1; letter-spacing:.2px; }
+.brand-text small{ display:block; font-size:11px; opacity:.85; font-weight:500; margin-top:2px; }
+.topbar-actions{ display:flex; gap:8px; }
+.icon-btn{
+  width:38px; height:38px; border-radius:12px; border:none;
+  background:rgba(255,255,255,.18);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:background .15s ease;
+}
+.icon-btn:hover{ background:rgba(255,255,255,.3); }
+.icon-btn svg{ width:18px; height:18px; }
+
+/* ---------- layout geral ---------- */
+main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
+.view{ display:none; animation:fadeIn .25s ease; }
+.view.active{ display:block; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+.section-title{ display:flex; align-items:baseline; justify-content:space-between; margin:22px 0 12px; }
+.section-title h2{ font-size:16px; margin:0; color:var(--ink); }
+.section-title .hint{ font-size:12px; color:var(--ink-soft); }
+.section-title:first-child{ margin-top:2px; }
+
+.card{
+  background:var(--paper);
+  border-radius:var(--radius);
+  padding:16px;
+  box-shadow:var(--shadow);
+  border:1px solid var(--line);
+}
+
+/* divisor "gomos de KitKat" — assinatura visual reaproveitada como separador */
+.wafer-divider{ display:flex; gap:4px; margin:22px 0 14px; }
+.wafer-divider span{ flex:1; height:6px; background:var(--line); border-radius:3px; position:relative; }
+.wafer-divider span::after{
+  content:''; position:absolute; inset:0; margin:auto; width:2px; height:10px;
+  background:var(--cream); top:-2px;
+}
+
+/* ---------- dashboard ---------- */
+.stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.stat-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:14px; box-shadow:var(--shadow);
+}
+.stat-card .label{ font-size:11.5px; color:var(--ink-soft); font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+.stat-card .value{ font-size:19px; font-weight:700; margin-top:6px; }
+.stat-card.expense .value{ color:var(--red-dark); }
+.stat-card.revenue .value{ color:var(--ink); }
+.stat-card.profit{ background:var(--green-bg); border-color:#1f4a30; grid-column:1/-1; }
+.stat-card.profit .value{ color:var(--green); font-size:26px; }
+.stat-card.pending .value{ color:var(--amber); }
+
+/* barra "quebrada ao meio" para mostrar a divisão 50/50 entre sócios */
+.split-bar{
+  display:flex; gap:6px; margin-top:14px;
+}
+.split-piece{
+  flex:1; background:var(--red); border-radius:12px; padding:14px 12px; color:#fff;
+  position:relative; overflow:hidden;
+}
+.split-piece::before{
+  content:''; position:absolute; inset:0;
+  background-image:repeating-linear-gradient(90deg, transparent 0 22%, rgba(255,255,255,.12) 22% 24%);
+}
+.split-piece .who{ font-size:11.5px; font-weight:600; opacity:.9; position:relative; }
+.split-piece .amount{ font-size:20px; font-weight:700; margin-top:4px; position:relative; }
+
+/* ---------- formulários ---------- */
+.field{ margin-bottom:14px; }
+.field label{ display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
+.field input, .field select{
+  width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line);
+  background:var(--choc-soft); font-size:15px; color:var(--ink); transition:border-color .15s ease, background .15s ease;
+  color-scheme:dark;
+}
+.field input:focus, .field select:focus{ outline:none; border-color:var(--red); background:var(--paper); }
+.field-row{ display:flex; gap:10px; }
+.field-row .field{ flex:1; }
+
+.price-preview{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--red); color:#fff; border-radius:12px; padding:14px 16px; margin-bottom:6px;
+}
+.price-preview .lbl{ font-size:12.5px; opacity:.9; font-weight:600; }
+.price-preview .unit-note{ font-size:11px; opacity:.85; margin-top:2px; }
+.price-edit{
+  display:flex; align-items:center; gap:4px; background:rgba(255,255,255,.16);
+  border-radius:10px; padding:7px 10px; flex-shrink:0;
+}
+.currency-prefix{ font-size:14px; font-weight:700; opacity:.85; }
+.price-input{
+  width:88px; background:transparent; border:none; color:#fff; font-size:20px; font-weight:700;
+  text-align:right; padding:0; -moz-appearance:textfield;
+}
+.price-input:focus{ outline:none; }
+.price-input::-webkit-outer-spin-button, .price-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.price-reset-link{
+  display:block; margin:0 0 14px; background:none; border:none; color:var(--ink-soft);
+  font-size:12px; font-weight:600; cursor:pointer; text-decoration:underline; padding:2px 0;
+}
+
+.pill-toggle{ display:flex; gap:8px; }
+.pill-toggle button{
+  flex:1; padding:12px; border-radius:12px; border:1.5px solid var(--line);
+  background:var(--choc-soft); font-weight:600; font-size:13.5px; color:var(--ink-soft); cursor:pointer;
+  transition:all .15s ease;
+}
+.pill-toggle button.active{ background:var(--red); border-color:var(--red); color:#fff; }
+
+.btn-primary{
+  width:100%; padding:15px; border:none; border-radius:14px; background:var(--red); color:#fff;
+  font-size:15.5px; font-weight:700; cursor:pointer; box-shadow:0 10px 20px -10px rgba(226,35,26,.6);
+  transition:transform .1s ease;
+}
+.btn-primary:active{ transform:scale(.98); }
+.btn-primary:disabled{ opacity:.6; cursor:default; }
+
+.empty-state{
+  text-align:center; padding:34px 16px; color:var(--ink-soft);
+}
+.empty-state .glyph{ font-size:30px; margin-bottom:8px; }
+.empty-state p{ margin:4px 0 0; font-size:13.5px; line-height:1.5; }
+
+/* ---------- pendências ---------- */
+.pending-item{
+  display:flex; align-items:center; gap:10px; padding:13px 14px; background:var(--paper);
+  border:1px solid var(--line); border-radius:14px; margin-bottom:10px; box-shadow:var(--shadow);
+}
+.pending-item .info{ flex:1; min-width:0; }
+.pending-item .name{ font-weight:700; font-size:14.5px; }
+.pending-item .meta{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+.pending-item .amount{ font-weight:700; color:var(--amber); font-size:13.5px; margin-top:3px; }
+.pending-actions{ display:flex; gap:6px; flex-shrink:0; }
+.action-btn{
+  width:38px; height:38px; border-radius:11px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:transform .1s ease;
+}
+.action-btn:active{ transform:scale(.92); }
+.action-btn.wpp{ background:#25D366; color:#fff; }
+.action-btn.paid{ background:var(--green-bg); color:var(--green); }
+.action-btn svg{ width:18px; height:18px; }
+
+/* ---------- histórico ---------- */
+.hist-tabs{ display:flex; gap:8px; margin-bottom:14px; }
+.hist-tabs button{
+  padding:9px 14px; border-radius:999px; border:1.5px solid var(--line); background:var(--paper);
+  font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer;
+}
+.hist-tabs button.active{ background:var(--choc); border-color:var(--choc); color:#fff; }
+.hist-item{
+  display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--paper);
+  border:1px solid var(--line); border-radius:14px; margin-bottom:9px;
+}
+.hist-badge{
+  width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+}
+.hist-badge.venda{ background:var(--green-bg); }
+.hist-badge.compra{ background:var(--amber-bg); }
+.hist-info{ flex:1; min-width:0; }
+.hist-info .t1{ font-weight:700; font-size:14px; display:flex; align-items:center; gap:6px; }
+.hist-info .t2{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+.status-tag{ font-size:10px; font-weight:700; padding:2px 7px; border-radius:999px; text-transform:uppercase; letter-spacing:.3px; }
+.status-tag.pago{ background:var(--green-bg); color:var(--green); }
+.status-tag.pendente{ background:var(--amber-bg); color:var(--amber); }
+.hist-amount{ font-weight:700; font-size:14px; text-align:right; flex-shrink:0; }
+.hist-del{
+  width:32px; height:32px; border-radius:9px; border:none; background:var(--cream);
+  color:var(--ink-soft); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.hist-del svg{ width:15px; height:15px; }
+
+.toast{
+  position:fixed; left:50%; bottom:calc(var(--nav-h) + 16px); transform:translateX(-50%) translateY(20px);
+  background:var(--choc); color:#fff; padding:12px 18px; border-radius:12px; font-size:13.5px; font-weight:600;
+  box-shadow:0 12px 24px -8px rgba(0,0,0,.35); opacity:0; pointer-events:none; transition:all .25s ease; z-index:100;
+  max-width:88%; text-align:center;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ---------- navbar inferior — "barra quebrada em gomos" ---------- */
+.navbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  height:var(--nav-h);
+  background:var(--choc);
+  display:flex;
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 24px -14px rgba(0,0,0,.4);
+}
+.nav-item{
+  flex:1; position:relative; border:none; background:transparent; color:#C9B8B2;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  cursor:pointer; border-radius:12px; transition:color .15s ease;
+}
+.nav-item + .nav-item::before{
+  content:''; position:absolute; left:0; top:14%; bottom:14%; width:1px;
+  background:repeating-linear-gradient(#6E4C43 0 4px, transparent 4px 8px);
+}
+.nav-item svg{ width:21px; height:21px; }
+.nav-item span{ font-size:9.5px; font-weight:700; letter-spacing:.2px; }
+.nav-item.active{ color:#fff; }
+.nav-item.active::after{
+  /* "mordida" — sinal visual do gomo ativo, remete a morder o KitKat */
+  content:''; position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+  width:18px; height:18px; background:var(--cream); border-radius:50%;
+}
+.nav-badge{
+  position:absolute; top:2px; right:22%; min-width:15px; height:15px; padding:0 3px;
+  background:var(--amber); color:#fff; border-radius:999px; font-size:9px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+
+@media (min-width:540px){
+  .navbar{ max-width:520px; left:50%; transform:translateX(-50%); border-radius:20px 20px 0 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== TOPO ===================== -->
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <div class="brand-mark"><span></span><span></span><span></span></div>
+      <div class="brand-text">
+        <h1>Quebra&amp;Caixa</h1>
+        <small>Controle de vendas de KitKat</small>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="btnExport" title="Exportar dados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+      <button class="icon-btn" id="btnImport" title="Importar dados">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
+      </button>
+      <input type="file" id="fileImport" accept="application/json" hidden>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===================== RESUMO / DASHBOARD ===================== -->
+  <section class="view active" id="view-resumo">
+    <div class="section-title"><h2>Resumo financeiro</h2><span class="hint" id="resumoDataHint"></span></div>
+
+    <div class="stat-grid">
+      <div class="stat-card expense">
+        <div class="label">Total de gastos</div>
+        <div class="value num" id="statGastos">R$ 0,00</div>
+      </div>
+      <div class="stat-card revenue">
+        <div class="label">Faturamento bruto</div>
+        <div class="value num" id="statVendas">R$ 0,00</div>
+      </div>
+      <div class="stat-card pending">
+        <div class="label">A receber (pendente)</div>
+        <div class="value num" id="statAReceber">R$ 0,00</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">KitKats vendidos</div>
+        <div class="value num" id="statQtdVendida">0</div>
+      </div>
+      <div class="stat-card profit">
+        <div class="label">Lucro líquido real (vendas pagas − gastos)</div>
+        <div class="value num" id="statLucro">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="split-bar">
+      <div class="split-piece">
+        <div class="who">Sua parte (50%)</div>
+        <div class="amount num" id="statSocio1">R$ 0,00</div>
+      </div>
+      <div class="split-piece">
+        <div class="who">Parte do sócio (50%)</div>
+        <div class="amount num" id="statSocio2">R$ 0,00</div>
+      </div>
+    </div>
+
+    <div class="wafer-divider"><span></span><span></span><span></span><span></span></div>
+    <div class="section-title"><h2>Pendências recentes</h2></div>
+    <div id="resumoPendMini"></div>
+  </section>
+
+  <!-- ===================== NOVA VENDA ===================== -->
+  <section class="view" id="view-venda">
+    <div class="section-title"><h2>Registrar venda</h2></div>
+    <form class="card" id="formVenda" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="vCliente">Nome do cliente</label>
+        <input type="text" id="vCliente" placeholder="Ex: Maria da 7ºB" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="vData">Data</label>
+          <input type="date" id="vData" required>
+        </div>
+        <div class="field">
+          <label for="vQtd">Quantidade</label>
+          <input type="number" id="vQtd" min="1" step="1" placeholder="Ex: 2" required>
+        </div>
+      </div>
+
+      <div class="price-preview">
+        <div>
+          <div class="lbl">Valor da venda</div>
+          <div class="unit-note" id="vPrecoUnitNote">1 un. = R$ 6,00</div>
+        </div>
+        <div class="price-edit">
+          <span class="currency-prefix">R$</span>
+          <input type="number" id="vPrecoInput" class="price-input num" min="0" step="0.01" inputmode="decimal" aria-label="Valor da venda (editável)">
+        </div>
+      </div>
+      <button type="button" id="vPrecoReset" class="price-reset-link" style="display:none;">↺ usar valor calculado automaticamente</button>
+
+      <div class="field">
+        <label>Forma de pagamento</label>
+        <div class="pill-toggle" id="vPagamentoToggle">
+          <button type="button" data-val="dinheiro" class="active">💵 Dinheiro</button>
+          <button type="button" data-val="pix">🔳 Pix</button>
+        </div>
+      </div>
+
+      <div class="field" id="vWhatsWrap" style="display:none;">
+        <label for="vWhats">WhatsApp do cliente</label>
+        <input type="tel" id="vWhats" placeholder="Ex: 48 99999-9999">
+      </div>
+
+      <div class="field">
+        <label>Status do pagamento</label>
+        <div class="pill-toggle" id="vStatusToggle">
+          <button type="button" data-val="pago" class="active">✅ Pago</button>
+          <button type="button" data-val="pendente">⏳ Pendente</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary">Salvar venda</button>
+    </form>
+  </section>
+
+  <!-- ===================== NOVA COMPRA ===================== -->
+  <section class="view" id="view-compra">
+    <div class="section-title"><h2>Registrar compra de estoque</h2></div>
+    <form class="card" id="formCompra" autocomplete="off" novalidate>
+      <div class="field">
+        <label for="cData">Data</label>
+        <input type="date" id="cData" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="cQtd">Quantidade comprada</label>
+          <input type="number" id="cQtd" min="1" step="1" placeholder="Ex: 40" required>
+        </div>
+        <div class="field">
+          <label for="cValor">Valor total pago (R$)</label>
+          <input type="number" id="cValor" min="0" step="0.01" placeholder="Ex: 120,00" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Salvar compra</button>
+    </form>
+  </section>
+
+  <!-- ===================== PENDÊNCIAS ===================== -->
+  <section class="view" id="view-pendencias">
+    <div class="section-title"><h2>Pagamentos pendentes</h2><span class="hint">Pix e Dinheiro</span></div>
+    <div id="pendenciasList"></div>
+  </section>
+
+  <!-- ===================== HISTÓRICO ===================== -->
+  <section class="view" id="view-historico">
+    <div class="section-title"><h2>Histórico</h2></div>
+    <div class="hist-tabs">
+      <button data-tipo="todos" class="active">Tudo</button>
+      <button data-tipo="venda">Vendas</button>
+      <button data-tipo="compra">Compras</button>
+    </div>
+    <div id="historicoList"></div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- ===================== NAVBAR ===================== -->
+<nav class="navbar">
+  <button class="nav-item active" data-view="resumo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+    <span>Resumo</span>
+  </button>
+  <button class="nav-item" data-view="venda">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    <span>Vender</span>
+  </button>
+  <button class="nav-item" data-view="compra">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.8h8.7a2 2 0 0 0 2-1.6L22 8H6"/><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg>
+    <span>Comprar</span>
+  </button>
+  <button class="nav-item" data-view="pendencias">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    <span>Pendências</span>
+    <span class="nav-badge" id="navBadgePend" style="display:none;">0</span>
+  </button>
+  <button class="nav-item" data-view="historico">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+    <span>Histórico</span>
+  </button>
+</nav>
+
+<script>
+/* ============================================================
+   QUEBRA&CAIXA — lógica do app (Vanilla JS)
+   Dados persistidos em localStorage, sem dependências externas.
+   ============================================================ */
+(function(){
+  'use strict';
+
+  const STORAGE_KEY = 'quebraCaixa.v1';
+
+  /** Estado em memória, espelhando o localStorage */
+  let state = loadState();
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        return {
+          purchases: Array.isArray(parsed.purchases) ? parsed.purchases : [],
+          sales: Array.isArray(parsed.sales) ? parsed.sales : []
+        };
+      }
+    }catch(e){ console.warn('Não foi possível ler os dados salvos, iniciando vazio.', e); }
+    return { purchases: [], sales: [] };
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function uid(){
+    return (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+  }
+
+  const BRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+  function money(n){ return BRL.format(n || 0); }
+
+  function dateBR(iso){
+    if(!iso) return '';
+    const [y,m,d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function toast(msg){
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=> el.classList.remove('show'), 2200);
+  }
+
+  /* ---------------- Regra de precificação ----------------
+     1 KitKat  = R$ 6,00
+     2 ou mais = R$ 5,00 cada
+  ----------------------------------------------------------*/
+  function calcPrice(qty){
+    qty = Number(qty) || 0;
+    if(qty <= 0) return 0;
+    if(qty === 1) return 6;
+    return qty * 5;
+  }
+
+  /* ---------------- Navegação entre telas ---------------- */
+  const views = document.querySelectorAll('.view');
+  const navItems = document.querySelectorAll('.nav-item');
+  function showView(name){
+    views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    navItems.forEach(n => n.classList.toggle('active', n.dataset.view === name));
+    window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+    if(name === 'resumo') renderResumo();
+    if(name === 'pendencias') renderPendencias();
+    if(name === 'historico') renderHistorico();
+  }
+  navItems.forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+
+  /* ==================================================
+     FORMULÁRIO — NOVA VENDA
+  ================================================== */
+  const formVenda = document.getElementById('formVenda');
+  const vCliente = document.getElementById('vCliente');
+  const vData = document.getElementById('vData');
+  const vQtd = document.getElementById('vQtd');
+  const vPrecoInput = document.getElementById('vPrecoInput');
+  const vPrecoUnitNote = document.getElementById('vPrecoUnitNote');
+  const vPrecoReset = document.getElementById('vPrecoReset');
+  const vPagamentoToggle = document.getElementById('vPagamentoToggle');
+  const vStatusToggle = document.getElementById('vStatusToggle');
+  const vWhatsWrap = document.getElementById('vWhatsWrap');
+  const vWhats = document.getElementById('vWhats');
+
+  vData.valueAsDate = new Date();
+
+  let vPagamento = 'dinheiro';
+  let vStatus = 'pago';
+
+  // O valor é calculado automaticamente a partir da quantidade, mas pode
+  // ser sobrescrito manualmente (ex: desconto, cortesia, arredondamento).
+  // Uma vez editado à mão, o campo para de seguir a quantidade até que
+  // o usuário clique em "usar valor calculado automaticamente".
+  let vPrecoManual = false;
+
+  function updatePricePreview(){
+    const qty = Number(vQtd.value) || 0;
+    const total = calcPrice(qty);
+    vPrecoUnitNote.textContent = qty <= 1
+      ? '1 un. = R$ 6,00'
+      : `${qty} un. x R$ 5,00 cada`;
+    if(!vPrecoManual){
+      vPrecoInput.value = total.toFixed(2);
+    }
+  }
+  vQtd.addEventListener('input', updatePricePreview);
+
+  vPrecoInput.addEventListener('input', ()=>{
+    vPrecoManual = true;
+    vPrecoReset.style.display = 'block';
+  });
+
+  vPrecoReset.addEventListener('click', ()=>{
+    vPrecoManual = false;
+    vPrecoReset.style.display = 'none';
+    updatePricePreview();
+  });
+
+  updatePricePreview();
+
+  function setToggle(container, value, onChange){
+    container.querySelectorAll('button').forEach(b=>{
+      b.classList.toggle('active', b.dataset.val === value);
+    });
+    onChange && onChange(value);
+  }
+
+  vPagamentoToggle.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    vPagamento = btn.dataset.val;
+    setToggle(vPagamentoToggle, vPagamento);
+    vWhatsWrap.style.display = vPagamento === 'pix' ? 'block' : 'none';
+    vWhats.required = vPagamento === 'pix';
+  });
+
+  vStatusToggle.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    vStatus = btn.dataset.val;
+    setToggle(vStatusToggle, vStatus);
+  });
+
+  /** Rola até o campo com problema, foca nele e avisa o motivo pelo toast.
+   *  Usado no lugar da validação nativa do navegador, que em alguns
+   *  celulares falha silenciosamente (o balão de aviso fica escondido
+   *  atrás da barra fixa do topo/rodapé e parece que "não fez nada"). */
+  function focusInvalid(el, msg){
+    el.scrollIntoView({ behavior:'smooth', block:'center' });
+    el.focus({ preventScroll:true });
+    toast(msg);
+  }
+
+  const btnSalvarVenda = formVenda.querySelector('button[type="submit"]');
+  let salvandoVenda = false;
+
+  formVenda.addEventListener('submit', (e)=>{
+    e.preventDefault();
+
+    // Trava contra clique duplo/repetido enquanto processa.
+    if(salvandoVenda) return;
+
+    try{
+      // ---- Validação manual (não depende da validação nativa do form) ----
+      const clientName = vCliente.value.trim();
+      if(!clientName){
+        focusInvalid(vCliente, 'Informe o nome do cliente.');
+        return;
+      }
+
+      if(!vData.value){
+        focusInvalid(vData, 'Informe a data da venda.');
+        return;
+      }
+
+      const qty = Number(vQtd.value);
+      if(!vQtd.value || !qty || qty < 1){
+        focusInvalid(vQtd, 'Informe uma quantidade válida (mínimo 1).');
+        return;
+      }
+
+      if(vPagamento === 'pix' && !vWhats.value.trim()){
+        focusInvalid(vWhats, 'Informe o WhatsApp do cliente ou mude a forma de pagamento para Dinheiro.');
+        return;
+      }
+
+      // Usa o valor digitado no campo (que pode ter sido editado manualmente);
+      // se estiver vazio ou inválido, cai de volta no cálculo automático.
+      const valorDigitado = Number(vPrecoInput.value);
+      const value = (vPrecoInput.value !== '' && !isNaN(valorDigitado) && valorDigitado >= 0)
+        ? valorDigitado
+        : calcPrice(qty);
+
+      salvandoVenda = true;
+      btnSalvarVenda.disabled = true;
+
+      const sale = {
+        id: uid(),
+        date: vData.value,
+        client: clientName,
+        qty,
+        value,
+        payment: vPagamento,
+        status: vStatus,
+        whatsapp: vPagamento === 'pix' ? onlyDigitsPhone(vWhats.value) : ''
+      };
+      state.sales.push(sale);
+      saveState();
+      toast(`Venda de ${qty} KitKat(s) registrada — ${money(sale.value)}`);
+
+      formVenda.reset();
+      vData.valueAsDate = new Date();
+      vPagamento = 'dinheiro'; setToggle(vPagamentoToggle, 'dinheiro');
+      vStatus = 'pago'; setToggle(vStatusToggle, 'pago');
+      vWhatsWrap.style.display = 'none';
+      vWhats.required = false;
+      vPrecoManual = false;
+      vPrecoReset.style.display = 'none';
+      updatePricePreview();
+      updateNavBadge();
+    }catch(err){
+      // Qualquer erro inesperado vira um aviso visível em vez de falhar em silêncio.
+      console.error('Erro ao salvar venda:', err);
+      toast('Não foi possível salvar a venda. Tente novamente.');
+    }finally{
+      salvandoVenda = false;
+      btnSalvarVenda.disabled = false;
+    }
+  });
+
+  /** Normaliza número de WhatsApp: mantém só dígitos e garante DDI 55 */
+  function onlyDigitsPhone(raw){
+    let digits = (raw || '').replace(/\D/g, '');
+    if(digits.length > 0 && digits.length <= 11){
+      digits = '55' + digits; // assume Brasil quando o DDI não foi digitado
+    }
+    return digits;
+  }
+
+  /* ==================================================
+     FORMULÁRIO — NOVA COMPRA
+  ================================================== */
+  const formCompra = document.getElementById('formCompra');
+  const cData = document.getElementById('cData');
+  const cQtd = document.getElementById('cQtd');
+  const cValor = document.getElementById('cValor');
+  const btnSalvarCompra = formCompra.querySelector('button[type="submit"]');
+  let salvandoCompra = false;
+  cData.valueAsDate = new Date();
+
+  formCompra.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    if(salvandoCompra) return;
+
+    try{
+      if(!cData.value){ focusInvalid(cData, 'Informe a data da compra.'); return; }
+
+      const qty = Number(cQtd.value);
+      if(!cQtd.value || !qty || qty < 1){ focusInvalid(cQtd, 'Informe a quantidade comprada.'); return; }
+
+      const total = Number(cValor.value);
+      if(cValor.value === '' || isNaN(total) || total < 0){ focusInvalid(cValor, 'Informe o valor total pago.'); return; }
+
+      salvandoCompra = true;
+      btnSalvarCompra.disabled = true;
+
+      state.purchases.push({ id: uid(), date: cData.value, qty, total });
+      saveState();
+      toast(`Compra registrada: ${qty} un. por ${money(total)}`);
+
+      formCompra.reset();
+      cData.valueAsDate = new Date();
+    }catch(err){
+      console.error('Erro ao salvar compra:', err);
+      toast('Não foi possível salvar a compra. Tente novamente.');
+    }finally{
+      salvandoCompra = false;
+      btnSalvarCompra.disabled = false;
+    }
+  });
+
+  /* ==================================================
+     PENDÊNCIAS — vendas com status "pendente", seja Pix
+     ou Dinheiro. O botão de WhatsApp só fica ativo quando
+     há um número cadastrado (vendas em Pix).
+  ================================================== */
+  function whatsappIcon(){
+    return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.6.1-.2.3-.7.9-.9 1-.2.2-.3.2-.6.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.5.1-.2 0-.4 0-.5-.1-.1-.6-1.5-.9-2-.2-.5-.5-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.4.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3z"/><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.5-1.2l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>`;
+  }
+  function checkIcon(){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+  }
+  function trashIcon(){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>`;
+  }
+
+  function pendingSales(){
+    return state.sales.filter(s => s.status === 'pendente');
+  }
+
+  function renderPendencias(){
+    const list = document.getElementById('pendenciasList');
+    const items = pendingSales().sort((a,b)=> a.date < b.date ? 1 : -1);
+
+    if(items.length === 0){
+      list.innerHTML = `<div class="empty-state"><div class="glyph">✅</div><p>Nenhuma pendência.<br>Tudo certo por aqui!</p></div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(s => `
+      <div class="pending-item" data-id="${s.id}">
+        <div class="info">
+          <div class="name">${escapeHtml(s.client || 'Cliente sem nome')} <span class="status-tag ${s.payment==='pix' ? 'pago' : 'pendente'}">${s.payment==='pix' ? 'Pix' : 'Dinheiro'}</span></div>
+          <div class="meta">${dateBR(s.date)} · ${s.qty} KitKat${s.qty>1?'s':''}</div>
+          <div class="amount num">${money(s.value)}</div>
+        </div>
+        <div class="pending-actions">
+          <button class="action-btn wpp" title="${s.whatsapp ? 'Chamar no WhatsApp' : 'Sem WhatsApp cadastrado (venda em dinheiro)'}" data-action="wpp" ${s.whatsapp ? '' : 'disabled style="opacity:.35"'}>${whatsappIcon()}</button>
+          <button class="action-btn paid" title="Marcar como pago" data-action="paid">${checkIcon()}</button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.pending-item').forEach(row=>{
+      const id = row.dataset.id;
+      row.querySelector('[data-action="wpp"]').addEventListener('click', ()=>{
+        const sale = state.sales.find(s=>s.id===id);
+        if(sale && sale.whatsapp){ window.open(`https://wa.me/${sale.whatsapp}`, '_blank'); }
+      });
+      row.querySelector('[data-action="paid"]').addEventListener('click', ()=>{
+        const sale = state.sales.find(s=>s.id===id);
+        if(sale){ sale.status = 'pago'; saveState(); toast(`${sale.client} marcado como pago.`); renderPendencias(); updateNavBadge(); renderResumo(); }
+      });
+    });
+  }
+
+  function renderResumoPendMini(){
+    const wrap = document.getElementById('resumoPendMini');
+    const items = pendingSales().sort((a,b)=> a.date < b.date ? 1 : -1).slice(0,3);
+    if(items.length === 0){
+      wrap.innerHTML = `<div class="empty-state"><div class="glyph">🎉</div><p>Ninguém te deve nada no momento.</p></div>`;
+      return;
+    }
+    wrap.innerHTML = items.map(s=>`
+      <div class="pending-item">
+        <div class="info">
+          <div class="name">${escapeHtml(s.client || 'Cliente sem nome')}</div>
+          <div class="meta">${dateBR(s.date)} · ${s.qty} KitKat${s.qty>1?'s':''}</div>
+          <div class="amount num">${money(s.value)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateNavBadge(){
+    const n = pendingSales().length;
+    const badge = document.getElementById('navBadgePend');
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'flex' : 'none';
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  /* ==================================================
+     HISTÓRICO
+  ================================================== */
+  let histFilter = 'todos';
+  document.querySelectorAll('.hist-tabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.hist-tabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      histFilter = btn.dataset.tipo;
+      renderHistorico();
+    });
+  });
+
+  function renderHistorico(){
+    const list = document.getElementById('historicoList');
+    const vendas = state.sales.map(s => ({...s, tipo:'venda'}));
+    const compras = state.purchases.map(c => ({...c, tipo:'compra'}));
+    let all = [...vendas, ...compras];
+    if(histFilter !== 'todos') all = all.filter(i => i.tipo === histFilter);
+    all.sort((a,b)=> a.date < b.date ? 1 : -1);
+
+    if(all.length === 0){
+      list.innerHTML = `<div class="empty-state"><div class="glyph">🍫</div><p>Nenhum registro por aqui ainda.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = all.map(item => {
+      if(item.tipo === 'venda'){
+        return `
+        <div class="hist-item" data-id="${item.id}" data-tipo="venda">
+          <div class="hist-badge venda">🛒</div>
+          <div class="hist-info">
+            <div class="t1">${escapeHtml(item.client || 'Cliente')} <span class="status-tag ${item.status}">${item.status}</span></div>
+            <div class="t2">${dateBR(item.date)} · ${item.qty} un. · ${item.payment === 'pix' ? 'Pix' : 'Dinheiro'}</div>
+          </div>
+          <div class="hist-amount num">${money(item.value)}</div>
+          <button class="hist-del" data-action="del">${trashIcon()}</button>
+        </div>`;
+      }
+      return `
+        <div class="hist-item" data-id="${item.id}" data-tipo="compra">
+          <div class="hist-badge compra">📦</div>
+          <div class="hist-info">
+            <div class="t1">Compra de estoque</div>
+            <div class="t2">${dateBR(item.date)} · ${item.qty} un.</div>
+          </div>
+          <div class="hist-amount num">${money(item.total)}</div>
+          <button class="hist-del" data-action="del">${trashIcon()}</button>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.hist-del').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const row = btn.closest('.hist-item');
+        const id = row.dataset.id, tipo = row.dataset.tipo;
+        if(!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return;
+        if(tipo === 'venda') state.sales = state.sales.filter(s=>s.id!==id);
+        else state.purchases = state.purchases.filter(c=>c.id!==id);
+        saveState();
+        renderHistorico();
+        renderResumo();
+        updateNavBadge();
+        toast('Registro excluído.');
+      });
+    });
+  }
+
+  /* ==================================================
+     RESUMO / DASHBOARD
+  ================================================== */
+  function renderResumo(){
+    const totalGastos = state.purchases.reduce((sum,c)=> sum + Number(c.total || 0), 0);
+    const totalVendasBruto = state.sales.reduce((sum,s)=> sum + Number(s.value || 0), 0);
+    const totalVendasPagas = state.sales.filter(s=>s.status==='pago').reduce((sum,s)=> sum + Number(s.value||0), 0);
+    const totalAReceber = state.sales.filter(s=>s.status==='pendente').reduce((sum,s)=> sum + Number(s.value||0), 0);
+    const qtdVendida = state.sales.reduce((sum,s)=> sum + Number(s.qty||0), 0);
+    const lucro = totalVendasPagas - totalGastos;
+    const porSocio = lucro / 2;
+
+    document.getElementById('statGastos').textContent = money(totalGastos);
+    document.getElementById('statVendas').textContent = money(totalVendasBruto);
+    document.getElementById('statAReceber').textContent = money(totalAReceber);
+    document.getElementById('statQtdVendida').textContent = qtdVendida;
+    document.getElementById('statLucro').textContent = money(lucro);
+    document.getElementById('statSocio1').textContent = money(porSocio);
+    document.getElementById('statSocio2').textContent = money(porSocio);
+
+    const hoje = new Date();
+    document.getElementById('resumoDataHint').textContent = hoje.toLocaleDateString('pt-BR', { day:'2-digit', month:'long' });
+
+    renderResumoPendMini();
+  }
+
+  /* ==================================================
+     EXPORTAR / IMPORTAR (sincronização entre sócios)
+  ================================================== */
+  document.getElementById('btnExport').addEventListener('click', ()=>{
+    const payload = {
+      app: 'quebraCaixa',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      ...state
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `quebra-caixa-backup-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('Backup exportado. Envie o arquivo para seu sócio!');
+  });
+
+  const fileImport = document.getElementById('fileImport');
+  document.getElementById('btnImport').addEventListener('click', ()=> fileImport.click());
+  fileImport.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(!Array.isArray(data.sales) || !Array.isArray(data.purchases)){
+          throw new Error('Arquivo em formato inesperado.');
+        }
+        const substituir = confirm(
+          'Importar dados:\n\nOK = SUBSTITUIR todos os dados atuais pelo arquivo\nCancelar = MESCLAR com os dados atuais (sem duplicar)'
+        );
+        if(substituir){
+          state = { sales: data.sales, purchases: data.purchases };
+        } else {
+          const idsVendas = new Set(state.sales.map(s=>s.id));
+          const idsCompras = new Set(state.purchases.map(c=>c.id));
+          data.sales.forEach(s=>{ if(!idsVendas.has(s.id)) state.sales.push(s); });
+          data.purchases.forEach(c=>{ if(!idsCompras.has(c.id)) state.purchases.push(c); });
+        }
+        saveState();
+        renderResumo(); renderPendencias(); renderHistorico(); updateNavBadge();
+        toast('Dados importados com sucesso!');
+      }catch(err){
+        console.error(err);
+        toast('Não foi possível importar este arquivo.');
+      }
+      fileImport.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  /* ==================================================
+     INICIALIZAÇÃO
+  ================================================== */
+  renderResumo();
+  updateNavBadge();
+})();
+</script>
+</body>
+</html>
