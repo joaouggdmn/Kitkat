@@ -31,6 +31,7 @@
   --green-bg:   #17311F;
   --amber:      #F2A84C;
   --amber-bg:   #3A2811;
+  --red-bg:     #3B1712;
   --radius:     16px;
   --radius-sm:  10px;
   --shadow:     0 8px 24px -12px rgba(0,0,0,.55);
@@ -119,6 +120,19 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 .stat-card.profit .value{ color:var(--green); font-size:26px; }
 .stat-card.pending .value{ color:var(--amber); }
 
+/* card de estoque total — muda de cor conforme a saúde do estoque */
+.stat-card.stock{
+  margin-bottom:10px; text-align:left; transition:background .2s ease, border-color .2s ease;
+}
+.stat-card.stock .value{ font-size:26px; }
+.stat-card.stock .stock-note{ font-size:12px; font-weight:600; margin-top:6px; opacity:.9; }
+.stat-card.stock.ok{ background:var(--green-bg); border-color:#1f4a30; }
+.stat-card.stock.ok .value{ color:var(--green); }
+.stat-card.stock.warn{ background:var(--amber-bg); border-color:#5c3d13; }
+.stat-card.stock.warn .value{ color:var(--amber); }
+.stat-card.stock.alert{ background:var(--red-bg); border-color:#5c231a; }
+.stat-card.stock.alert .value{ color:var(--red); }
+
 /* barra "quebrada ao meio" para mostrar a divisão 50/50 entre sócios */
 .split-bar{
   display:flex; gap:6px; margin-top:14px;
@@ -166,6 +180,10 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 .price-reset-link{
   display:block; margin:0 0 14px; background:none; border:none; color:var(--ink-soft);
   font-size:12px; font-weight:600; cursor:pointer; text-decoration:underline; padding:2px 0;
+}
+.link-btn{
+  background:none; border:none; color:var(--ink-soft); font-size:12px; font-weight:600;
+  cursor:pointer; text-decoration:underline; padding:0; flex-shrink:0;
 }
 
 .pill-toggle{ display:flex; gap:8px; }
@@ -233,11 +251,42 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 .status-tag.pago{ background:var(--green-bg); color:var(--green); }
 .status-tag.pendente{ background:var(--amber-bg); color:var(--amber); }
 .hist-amount{ font-weight:700; font-size:14px; text-align:right; flex-shrink:0; }
-.hist-del{
-  width:32px; height:32px; border-radius:9px; border:none; background:var(--cream);
-  color:var(--ink-soft); flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center;
+.hist-right{ display:flex; flex-direction:column; align-items:flex-end; gap:7px; flex-shrink:0; }
+.hist-actions{ display:flex; gap:6px; }
+.hist-btn{
+  width:30px; height:30px; border-radius:9px; border:none; background:var(--choc-soft);
+  color:var(--ink-soft); cursor:pointer; display:flex; align-items:center; justify-content:center;
 }
-.hist-del svg{ width:15px; height:15px; }
+.hist-btn svg{ width:14px; height:14px; }
+
+/* ---------- diário (compras, vendas, estoque e financeiro por dia) ---------- */
+.day-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; margin-bottom:12px; box-shadow:var(--shadow);
+}
+.day-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; gap:8px; }
+.day-header .day-title{ font-weight:700; font-size:14.5px; text-transform:capitalize; }
+.day-stock-tag{
+  font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap;
+  background:var(--green-bg); color:var(--green);
+}
+.day-stock-tag.negative{ background:var(--amber-bg); color:var(--amber); }
+.day-carry-note{
+  font-size:11.5px; color:var(--ink-soft); margin:-4px 0 12px; padding-left:2px;
+}
+.day-carry-note b{ color:var(--ink); font-weight:700; }
+.day-metrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+.day-metric{ text-align:center; background:var(--choc-soft); border-radius:10px; padding:9px 4px; }
+.day-metric .n{ font-size:16px; font-weight:700; }
+.day-metric .l{ font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.3px; margin-top:3px; }
+.day-finance{
+  display:flex; justify-content:space-between; gap:6px; font-size:11.5px; color:var(--ink-soft);
+  border-top:1px dashed var(--line); padding-top:10px;
+}
+.day-finance div{ text-align:center; flex:1; }
+.day-finance b{ display:block; color:var(--ink); font-size:13px; margin-top:2px; }
+.day-finance b.pos{ color:var(--green); }
+.day-finance b.neg{ color:var(--red); }
 
 .toast{
   position:fixed; left:50%; bottom:calc(var(--nav-h) + 16px); transform:translateX(-50%) translateY(20px);
@@ -265,8 +314,8 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
   content:''; position:absolute; left:0; top:14%; bottom:14%; width:1px;
   background:repeating-linear-gradient(#6E4C43 0 4px, transparent 4px 8px);
 }
-.nav-item svg{ width:21px; height:21px; }
-.nav-item span{ font-size:9.5px; font-weight:700; letter-spacing:.2px; }
+.nav-item svg{ width:19px; height:19px; }
+.nav-item span{ font-size:8.8px; font-weight:700; letter-spacing:.1px; }
 .nav-item.active{ color:#fff; }
 .nav-item.active::after{
   /* "mordida" — sinal visual do gomo ativo, remete a morder o KitKat */
@@ -314,6 +363,12 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
   <section class="view active" id="view-resumo">
     <div class="section-title"><h2>Resumo financeiro</h2><span class="hint" id="resumoDataHint"></span></div>
 
+    <div class="stat-card stock" id="statEstoqueCard">
+      <div class="label">Estoque total de KitKats</div>
+      <div class="value num" id="statEstoqueTotal">0 un.</div>
+      <div class="stock-note" id="statEstoqueNote"></div>
+    </div>
+
     <div class="stat-grid">
       <div class="stat-card expense">
         <div class="label">Total de gastos</div>
@@ -355,7 +410,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 
   <!-- ===================== NOVA VENDA ===================== -->
   <section class="view" id="view-venda">
-    <div class="section-title"><h2>Registrar venda</h2></div>
+    <div class="section-title"><h2 id="vFormTitle">Registrar venda</h2><button type="button" id="vCancelEdit" class="link-btn" style="display:none;">✕ cancelar edição</button></div>
     <form class="card" id="formVenda" autocomplete="off" novalidate>
       <div class="field">
         <label for="vCliente">Nome do cliente</label>
@@ -412,7 +467,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 
   <!-- ===================== NOVA COMPRA ===================== -->
   <section class="view" id="view-compra">
-    <div class="section-title"><h2>Registrar compra de estoque</h2></div>
+    <div class="section-title"><h2 id="cFormTitle">Registrar compra de estoque</h2><button type="button" id="cCancelEdit" class="link-btn" style="display:none;">✕ cancelar edição</button></div>
     <form class="card" id="formCompra" autocomplete="off" novalidate>
       <div class="field">
         <label for="cData">Data</label>
@@ -449,6 +504,26 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     <div id="historicoList"></div>
   </section>
 
+  <!-- ===================== DIÁRIO (compras, vendas, estoque e financeiro por dia) ===================== -->
+  <section class="view" id="view-diario">
+    <div class="section-title"><h2>Diário</h2><span class="hint">Compras, vendas e estoque</span></div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">Estoque atual</div>
+        <div class="value num" id="diarioEstoqueAtual">0 un.</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total comprado</div>
+        <div class="value num" id="diarioTotalComprado">0 un.</div>
+      </div>
+    </div>
+
+    <div class="wafer-divider"><span></span><span></span><span></span><span></span></div>
+    <div class="section-title"><h2>Detalhamento por dia</h2></div>
+    <div id="diarioList"></div>
+  </section>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -472,11 +547,16 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     <span>Pendências</span>
     <span class="nav-badge" id="navBadgePend" style="display:none;">0</span>
   </button>
+  <button class="nav-item" data-view="diario">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><rect x="12" y="8" width="3" height="10" rx="1" fill="currentColor" stroke="none"/><rect x="17" y="5" width="3" height="13" rx="1" fill="currentColor" stroke="none"/></svg>
+    <span>Diário</span>
+  </button>
   <button class="nav-item" data-view="historico">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
     <span>Histórico</span>
   </button>
 </nav>
+
 
 <script>
 /* ============================================================
@@ -541,6 +621,14 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     return qty * 5;
   }
 
+  /** Estoque total atual = tudo que já foi comprado - tudo que já foi vendido,
+   *  em toda a história do negócio. Usado no Resumo e no Diário. */
+  function estoqueAtualGlobal(){
+    const totalComprado = state.purchases.reduce((sum,p)=> sum + Number(p.qty || 0), 0);
+    const totalVendido = state.sales.reduce((sum,s)=> sum + Number(s.qty || 0), 0);
+    return totalComprado - totalVendido;
+  }
+
   /* ---------------- Navegação entre telas ---------------- */
   const views = document.querySelectorAll('.view');
   const navItems = document.querySelectorAll('.nav-item');
@@ -551,6 +639,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     if(name === 'resumo') renderResumo();
     if(name === 'pendencias') renderPendencias();
     if(name === 'historico') renderHistorico();
+    if(name === 'diario') renderDiario();
   }
   navItems.forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
 
@@ -558,6 +647,8 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
      FORMULÁRIO — NOVA VENDA
   ================================================== */
   const formVenda = document.getElementById('formVenda');
+  const vFormTitle = document.getElementById('vFormTitle');
+  const vCancelEdit = document.getElementById('vCancelEdit');
   const vCliente = document.getElementById('vCliente');
   const vData = document.getElementById('vData');
   const vQtd = document.getElementById('vQtd');
@@ -573,6 +664,10 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 
   let vPagamento = 'dinheiro';
   let vStatus = 'pago';
+
+  // Quando diferente de null, o formulário está editando uma venda já
+  // existente (em vez de criar uma nova) — guarda o ID do registro.
+  let editingSaleId = null;
 
   // O valor é calculado automaticamente a partir da quantidade, mas pode
   // ser sobrescrito manualmente (ex: desconto, cortesia, arredondamento).
@@ -638,6 +733,61 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     toast(msg);
   }
 
+  /** Reseta o formulário de venda para o estado "nova venda" (sai do modo edição). */
+  function resetFormVenda(){
+    formVenda.reset();
+    vData.valueAsDate = new Date();
+    vPagamento = 'dinheiro'; setToggle(vPagamentoToggle, 'dinheiro');
+    vStatus = 'pago'; setToggle(vStatusToggle, 'pago');
+    vWhatsWrap.style.display = 'none';
+    vWhats.required = false;
+    vPrecoManual = false;
+    vPrecoReset.style.display = 'none';
+    updatePricePreview();
+    editingSaleId = null;
+    vFormTitle.textContent = 'Registrar venda';
+    btnSalvarVenda.textContent = 'Salvar venda';
+    vCancelEdit.style.display = 'none';
+  }
+
+  /** Carrega os dados de uma venda existente no formulário para edição. */
+  function startEditSale(sale){
+    if(!sale) return;
+    editingSaleId = sale.id;
+
+    vCliente.value = sale.client || '';
+    vData.value = sale.date || '';
+    vQtd.value = sale.qty || 1;
+
+    // Se o valor salvo bate com o cálculo automático, mantém o campo
+    // seguindo a quantidade; caso contrário, preserva o valor customizado.
+    vPrecoManual = Number(sale.value) !== calcPrice(sale.qty);
+    vPrecoInput.value = Number(sale.value || 0).toFixed(2);
+    vPrecoReset.style.display = vPrecoManual ? 'block' : 'none';
+    updatePricePreview();
+
+    vPagamento = sale.payment === 'pix' ? 'pix' : 'dinheiro';
+    setToggle(vPagamentoToggle, vPagamento);
+    vWhatsWrap.style.display = vPagamento === 'pix' ? 'block' : 'none';
+    vWhats.required = vPagamento === 'pix';
+    vWhats.value = sale.whatsapp || '';
+
+    vStatus = sale.status === 'pendente' ? 'pendente' : 'pago';
+    setToggle(vStatusToggle, vStatus);
+
+    vFormTitle.textContent = 'Editar venda';
+    btnSalvarVenda.textContent = 'Salvar alterações';
+    vCancelEdit.style.display = 'inline';
+
+    showView('venda');
+    vCliente.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  vCancelEdit.addEventListener('click', ()=>{
+    resetFormVenda();
+    toast('Edição cancelada.');
+  });
+
   const btnSalvarVenda = formVenda.querySelector('button[type="submit"]');
   let salvandoVenda = false;
 
@@ -681,8 +831,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
       salvandoVenda = true;
       btnSalvarVenda.disabled = true;
 
-      const sale = {
-        id: uid(),
+      const dadosVenda = {
         date: vData.value,
         client: clientName,
         qty,
@@ -691,19 +840,23 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
         status: vStatus,
         whatsapp: vPagamento === 'pix' ? onlyDigitsPhone(vWhats.value) : ''
       };
-      state.sales.push(sale);
-      saveState();
-      toast(`Venda de ${qty} KitKat(s) registrada — ${money(sale.value)}`);
 
-      formVenda.reset();
-      vData.valueAsDate = new Date();
-      vPagamento = 'dinheiro'; setToggle(vPagamentoToggle, 'dinheiro');
-      vStatus = 'pago'; setToggle(vStatusToggle, 'pago');
-      vWhatsWrap.style.display = 'none';
-      vWhats.required = false;
-      vPrecoManual = false;
-      vPrecoReset.style.display = 'none';
-      updatePricePreview();
+      if(editingSaleId){
+        const idx = state.sales.findIndex(s => s.id === editingSaleId);
+        if(idx > -1){
+          state.sales[idx] = { ...state.sales[idx], ...dadosVenda };
+          saveState();
+          toast(`Venda de ${clientName} atualizada — ${money(value)}`);
+        } else {
+          toast('Não foi possível encontrar essa venda para atualizar.');
+        }
+      } else {
+        state.sales.push({ id: uid(), ...dadosVenda });
+        saveState();
+        toast(`Venda de ${qty} KitKat(s) registrada — ${money(value)}`);
+      }
+
+      resetFormVenda();
       updateNavBadge();
     }catch(err){
       // Qualquer erro inesperado vira um aviso visível em vez de falhar em silêncio.
@@ -724,16 +877,54 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     return digits;
   }
 
+
   /* ==================================================
      FORMULÁRIO — NOVA COMPRA
   ================================================== */
   const formCompra = document.getElementById('formCompra');
+  const cFormTitle = document.getElementById('cFormTitle');
+  const cCancelEdit = document.getElementById('cCancelEdit');
   const cData = document.getElementById('cData');
   const cQtd = document.getElementById('cQtd');
   const cValor = document.getElementById('cValor');
   const btnSalvarCompra = formCompra.querySelector('button[type="submit"]');
   let salvandoCompra = false;
   cData.valueAsDate = new Date();
+
+  // Quando diferente de null, o formulário está editando uma compra já
+  // existente (em vez de criar uma nova) — guarda o ID do registro.
+  let editingPurchaseId = null;
+
+  /** Reseta o formulário de compra para o estado "nova compra" (sai do modo edição). */
+  function resetFormCompra(){
+    formCompra.reset();
+    cData.valueAsDate = new Date();
+    editingPurchaseId = null;
+    cFormTitle.textContent = 'Registrar compra de estoque';
+    btnSalvarCompra.textContent = 'Salvar compra';
+    cCancelEdit.style.display = 'none';
+  }
+
+  /** Carrega os dados de uma compra existente no formulário para edição. */
+  function startEditPurchase(purchase){
+    if(!purchase) return;
+    editingPurchaseId = purchase.id;
+    cData.value = purchase.date || '';
+    cQtd.value = purchase.qty || '';
+    cValor.value = Number(purchase.total || 0).toFixed(2);
+
+    cFormTitle.textContent = 'Editar compra';
+    btnSalvarCompra.textContent = 'Salvar alterações';
+    cCancelEdit.style.display = 'inline';
+
+    showView('compra');
+    cData.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  cCancelEdit.addEventListener('click', ()=>{
+    resetFormCompra();
+    toast('Edição cancelada.');
+  });
 
   formCompra.addEventListener('submit', (e)=>{
     e.preventDefault();
@@ -751,12 +942,22 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
       salvandoCompra = true;
       btnSalvarCompra.disabled = true;
 
-      state.purchases.push({ id: uid(), date: cData.value, qty, total });
-      saveState();
-      toast(`Compra registrada: ${qty} un. por ${money(total)}`);
+      if(editingPurchaseId){
+        const idx = state.purchases.findIndex(p => p.id === editingPurchaseId);
+        if(idx > -1){
+          state.purchases[idx] = { ...state.purchases[idx], date: cData.value, qty, total };
+          saveState();
+          toast(`Compra atualizada: ${qty} un. por ${money(total)}`);
+        } else {
+          toast('Não foi possível encontrar essa compra para atualizar.');
+        }
+      } else {
+        state.purchases.push({ id: uid(), date: cData.value, qty, total });
+        saveState();
+        toast(`Compra registrada: ${qty} un. por ${money(total)}`);
+      }
 
-      formCompra.reset();
-      cData.valueAsDate = new Date();
+      resetFormCompra();
     }catch(err){
       console.error('Erro ao salvar compra:', err);
       toast('Não foi possível salvar a compra. Tente novamente.');
@@ -779,6 +980,9 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
   }
   function trashIcon(){
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>`;
+  }
+  function editIcon(){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
   }
 
   function pendingSales(){
@@ -887,8 +1091,13 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
             <div class="t1">${escapeHtml(item.client || 'Cliente')} <span class="status-tag ${item.status}">${item.status}</span></div>
             <div class="t2">${dateBR(item.date)} · ${item.qty} un. · ${item.payment === 'pix' ? 'Pix' : 'Dinheiro'}</div>
           </div>
-          <div class="hist-amount num">${money(item.value)}</div>
-          <button class="hist-del" data-action="del">${trashIcon()}</button>
+          <div class="hist-right">
+            <div class="hist-amount num">${money(item.value)}</div>
+            <div class="hist-actions">
+              <button class="hist-btn" data-action="edit" title="Editar">${editIcon()}</button>
+              <button class="hist-btn" data-action="del" title="Excluir">${trashIcon()}</button>
+            </div>
+          </div>
         </div>`;
       }
       return `
@@ -898,12 +1107,31 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
             <div class="t1">Compra de estoque</div>
             <div class="t2">${dateBR(item.date)} · ${item.qty} un.</div>
           </div>
-          <div class="hist-amount num">${money(item.total)}</div>
-          <button class="hist-del" data-action="del">${trashIcon()}</button>
+          <div class="hist-right">
+            <div class="hist-amount num">${money(item.total)}</div>
+            <div class="hist-actions">
+              <button class="hist-btn" data-action="edit" title="Editar">${editIcon()}</button>
+              <button class="hist-btn" data-action="del" title="Excluir">${trashIcon()}</button>
+            </div>
+          </div>
         </div>`;
     }).join('');
 
-    list.querySelectorAll('.hist-del').forEach(btn=>{
+    list.querySelectorAll('[data-action="edit"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const row = btn.closest('.hist-item');
+        const id = row.dataset.id, tipo = row.dataset.tipo;
+        if(tipo === 'venda'){
+          const sale = state.sales.find(s=>s.id===id);
+          startEditSale(sale);
+        } else {
+          const purchase = state.purchases.find(p=>p.id===id);
+          startEditPurchase(purchase);
+        }
+      });
+    });
+
+    list.querySelectorAll('[data-action="del"]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const row = btn.closest('.hist-item');
         const id = row.dataset.id, tipo = row.dataset.tipo;
@@ -920,6 +1148,104 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
   }
 
   /* ==================================================
+     DIÁRIO — compras, vendas, estoque e financeiro por dia
+  ================================================== */
+
+  /** Agrupa compras e vendas por data e calcula o estoque acumulado
+   *  dia a dia (soma de tudo que já entrou menos tudo que já saiu
+   *  até o fim daquele dia). Retorna do dia mais recente para o mais antigo. */
+  function buildDailyData(){
+    const byDate = {};
+    function dayOf(date){
+      if(!byDate[date]){
+        byDate[date] = { date, compradas:0, vendidas:0, gastos:0, vendasBruto:0, vendasPagas:0 };
+      }
+      return byDate[date];
+    }
+
+    state.purchases.forEach(p=>{
+      const d = dayOf(p.date);
+      d.compradas += Number(p.qty || 0);
+      d.gastos += Number(p.total || 0);
+    });
+    state.sales.forEach(s=>{
+      const d = dayOf(s.date);
+      d.vendidas += Number(s.qty || 0);
+      d.vendasBruto += Number(s.value || 0);
+      if(s.status === 'pago') d.vendasPagas += Number(s.value || 0);
+    });
+
+    const diasOrdenados = Object.values(byDate).sort((a,b)=> a.date < b.date ? -1 : 1);
+
+    // Estoque contínuo: o estoque inicial de um dia é sempre a sobra
+    // (estoque final) do dia anterior. Compras do dia somam a essa sobra;
+    // vendas do dia subtraem, formando o estoque final do dia.
+    let estoqueAnterior = 0;
+    diasOrdenados.forEach(d=>{
+      d.estoqueInicial = estoqueAnterior;
+      d.estoque = estoqueAnterior + d.compradas - d.vendidas; // estoque final do dia
+      d.lucro = d.vendasPagas - d.gastos;
+      estoqueAnterior = d.estoque;
+    });
+
+    return diasOrdenados.reverse(); // mais recente primeiro
+  }
+
+  function formatDiaLongo(iso){
+    if(!iso) return '';
+    const [y,m,d] = iso.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    return dt.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'long' });
+  }
+
+  function renderDiario(){
+    const dias = buildDailyData();
+
+    const totalComprado = state.purchases.reduce((sum,p)=> sum + Number(p.qty||0), 0);
+    const estoqueAtual = estoqueAtualGlobal();
+
+    const elEstoque = document.getElementById('diarioEstoqueAtual');
+    elEstoque.textContent = `${estoqueAtual} un.`;
+    elEstoque.style.color = estoqueAtual < 0 ? 'var(--amber)' : '';
+    document.getElementById('diarioTotalComprado').textContent = `${totalComprado} un.`;
+
+    const list = document.getElementById('diarioList');
+    if(dias.length === 0){
+      list.innerHTML = `<div class="empty-state"><div class="glyph">🗓️</div><p>Nenhuma compra ou venda registrada ainda.<br>Cadastre para ver o resumo por dia.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = dias.map(d => `
+      <div class="day-card">
+        <div class="day-header">
+          <div class="day-title">${formatDiaLongo(d.date)}</div>
+          <div class="day-stock-tag ${d.estoque < 0 ? 'negative' : ''}">${d.estoque} no final do dia</div>
+        </div>
+        <div class="day-carry-note">↳ Sobra do dia anterior: <b>${d.estoqueInicial} un.</b></div>
+        <div class="day-metrics">
+          <div class="day-metric">
+            <div class="n">${d.compradas}</div>
+            <div class="l">Comprados</div>
+          </div>
+          <div class="day-metric">
+            <div class="n">${d.vendidas}</div>
+            <div class="l">Vendidos</div>
+          </div>
+          <div class="day-metric">
+            <div class="n">${d.estoque}</div>
+            <div class="l">Estoque final</div>
+          </div>
+        </div>
+        <div class="day-finance">
+          <div>Gastos<b class="num">${money(d.gastos)}</b></div>
+          <div>Vendas<b class="num">${money(d.vendasBruto)}</b></div>
+          <div>Lucro<b class="num ${d.lucro >= 0 ? 'pos' : 'neg'}">${money(d.lucro)}</b></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /* ==================================================
      RESUMO / DASHBOARD
   ================================================== */
   function renderResumo(){
@@ -930,6 +1256,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     const qtdVendida = state.sales.reduce((sum,s)=> sum + Number(s.qty||0), 0);
     const lucro = totalVendasPagas - totalGastos;
     const porSocio = lucro / 2;
+    const estoque = estoqueAtualGlobal();
 
     document.getElementById('statGastos').textContent = money(totalGastos);
     document.getElementById('statVendas').textContent = money(totalVendasBruto);
@@ -938,6 +1265,22 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     document.getElementById('statLucro').textContent = money(lucro);
     document.getElementById('statSocio1').textContent = money(porSocio);
     document.getElementById('statSocio2').textContent = money(porSocio);
+
+    // Card de estoque total: muda de cor conforme a situação
+    const estoqueCard = document.getElementById('statEstoqueCard');
+    const estoqueNote = document.getElementById('statEstoqueNote');
+    document.getElementById('statEstoqueTotal').textContent = `${estoque} un.`;
+    estoqueCard.classList.remove('ok','warn','alert');
+    if(estoque > 0){
+      estoqueCard.classList.add('ok');
+      estoqueNote.textContent = '';
+    } else if(estoque === 0){
+      estoqueCard.classList.add('warn');
+      estoqueNote.textContent = '⚠️ Estoque zerado — hora de comprar mais KitKats!';
+    } else {
+      estoqueCard.classList.add('alert');
+      estoqueNote.textContent = '🚨 Estoque negativo — confira se todas as compras foram registradas.';
+    }
 
     const hoje = new Date();
     document.getElementById('resumoDataHint').textContent = hoje.toLocaleDateString('pt-BR', { day:'2-digit', month:'long' });
@@ -992,7 +1335,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
           data.purchases.forEach(c=>{ if(!idsCompras.has(c.id)) state.purchases.push(c); });
         }
         saveState();
-        renderResumo(); renderPendencias(); renderHistorico(); updateNavBadge();
+        renderResumo(); renderPendencias(); renderHistorico(); renderDiario(); updateNavBadge();
         toast('Dados importados com sucesso!');
       }catch(err){
         console.error(err);
