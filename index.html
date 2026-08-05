@@ -133,21 +133,6 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 .stat-card.stock.alert{ background:var(--red-bg); border-color:#5c231a; }
 .stat-card.stock.alert .value{ color:var(--red); }
 
-/* barra "quebrada ao meio" para mostrar a divisão 50/50 entre sócios */
-.split-bar{
-  display:flex; gap:6px; margin-top:14px;
-}
-.split-piece{
-  flex:1; background:var(--red); border-radius:12px; padding:14px 12px; color:#fff;
-  position:relative; overflow:hidden;
-}
-.split-piece::before{
-  content:''; position:absolute; inset:0;
-  background-image:repeating-linear-gradient(90deg, transparent 0 22%, rgba(255,255,255,.12) 22% 24%);
-}
-.split-piece .who{ font-size:11.5px; font-weight:600; opacity:.9; position:relative; }
-.split-piece .amount{ font-size:20px; font-weight:700; margin-top:4px; position:relative; }
-
 /* ---------- formulários ---------- */
 .field{ margin-bottom:14px; }
 .field label{ display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px; }
@@ -387,19 +372,8 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
         <div class="value num" id="statQtdVendida">0</div>
       </div>
       <div class="stat-card profit">
-        <div class="label">Lucro líquido real (vendas pagas − gastos)</div>
+        <div class="label">Lucro líquido total (100% seu)</div>
         <div class="value num" id="statLucro">R$ 0,00</div>
-      </div>
-    </div>
-
-    <div class="split-bar">
-      <div class="split-piece">
-        <div class="who">Sua parte (50%)</div>
-        <div class="amount num" id="statSocio1">R$ 0,00</div>
-      </div>
-      <div class="split-piece">
-        <div class="who">Parte do sócio (50%)</div>
-        <div class="amount num" id="statSocio2">R$ 0,00</div>
       </div>
     </div>
 
@@ -1254,8 +1228,8 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     const totalVendasPagas = state.sales.filter(s=>s.status==='pago').reduce((sum,s)=> sum + Number(s.value||0), 0);
     const totalAReceber = state.sales.filter(s=>s.status==='pendente').reduce((sum,s)=> sum + Number(s.value||0), 0);
     const qtdVendida = state.sales.reduce((sum,s)=> sum + Number(s.qty||0), 0);
+    // Lucro líquido total = 100% do resultado do negócio (sem divisão de sócios)
     const lucro = totalVendasPagas - totalGastos;
-    const porSocio = lucro / 2;
     const estoque = estoqueAtualGlobal();
 
     document.getElementById('statGastos').textContent = money(totalGastos);
@@ -1263,8 +1237,6 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     document.getElementById('statAReceber').textContent = money(totalAReceber);
     document.getElementById('statQtdVendida').textContent = qtdVendida;
     document.getElementById('statLucro').textContent = money(lucro);
-    document.getElementById('statSocio1').textContent = money(porSocio);
-    document.getElementById('statSocio2').textContent = money(porSocio);
 
     // Card de estoque total: muda de cor conforme a situação
     const estoqueCard = document.getElementById('statEstoqueCard');
@@ -1289,7 +1261,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
   }
 
   /* ==================================================
-     EXPORTAR / IMPORTAR (sincronização entre sócios)
+     EXPORTAR / IMPORTAR (backup dos dados)
   ================================================== */
   document.getElementById('btnExport').addEventListener('click', ()=>{
     const payload = {
@@ -1308,7 +1280,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    toast('Backup exportado. Envie o arquivo para seu sócio!');
+    toast('Backup exportado. Guarde o arquivo em um local seguro!');
   });
 
   const fileImport = document.getElementById('fileImport');
