@@ -263,6 +263,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 .day-metrics{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
 .day-metric{ text-align:center; background:var(--choc-soft); border-radius:10px; padding:9px 4px; }
 .day-metric .n{ font-size:16px; font-weight:700; }
+.day-metric .n.neg{ color:var(--red); }
 .day-metric .l{ font-size:9.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.3px; margin-top:3px; }
 .day-finance{
   display:flex; justify-content:space-between; gap:6px; font-size:11.5px; color:var(--ink-soft);
@@ -372,7 +373,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
         <div class="value num" id="statQtdVendida">0</div>
       </div>
       <div class="stat-card profit">
-        <div class="label">Lucro líquido total</div>
+        <div class="label">Lucro líquido total (100% seu)</div>
         <div class="value num" id="statLucro">R$ 0,00</div>
       </div>
     </div>
@@ -493,6 +494,21 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
       </div>
     </div>
 
+    <div class="section-title"><h2>Separar para hoje</h2><span class="hint">Controle de mochila</span></div>
+    <form class="card" id="formMochila" autocomplete="off" novalidate>
+      <div class="field-row">
+        <div class="field">
+          <label for="mData">Data</label>
+          <input type="date" id="mData" required>
+        </div>
+        <div class="field">
+          <label for="mQtd">Quantidade levada</label>
+          <input type="number" id="mQtd" min="1" step="1" placeholder="Ex: 20" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary">Registrar saída para escola</button>
+    </form>
+
     <div class="wafer-divider"><span></span><span></span><span></span><span></span></div>
     <div class="section-title"><h2>Detalhamento por dia</h2></div>
     <div id="diarioList"></div>
@@ -552,11 +568,14 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
         const parsed = JSON.parse(raw);
         return {
           purchases: Array.isArray(parsed.purchases) ? parsed.purchases : [],
-          sales: Array.isArray(parsed.sales) ? parsed.sales : []
+          sales: Array.isArray(parsed.sales) ? parsed.sales : [],
+          // Controle de mochila: quantos KitKats foram separados/levados
+          // para vender na escola em cada dia (não afeta o estoque geral).
+          backpack: Array.isArray(parsed.backpack) ? parsed.backpack : []
         };
       }
     }catch(e){ console.warn('Não foi possível ler os dados salvos, iniciando vazio.', e); }
-    return { purchases: [], sales: [] };
+    return { purchases: [], sales: [], backpack: [] };
   }
 
   function saveState(){
@@ -1122,17 +1141,53 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
   }
 
   /* ==================================================
-     DIÁRIO — compras, vendas, estoque e financeiro por dia
+     DIÁRIO — compras, vendas, estoque, mochila e financeiro por dia
   ================================================== */
 
-  /** Agrupa compras e vendas por data e calcula o estoque acumulado
-   *  dia a dia (soma de tudo que já entrou menos tudo que já saiu
-   *  até o fim daquele dia). Retorna do dia mais recente para o mais antigo. */
+  // ---- Formulário "Separar para hoje" (controle de mochila) ----
+  const formMochila = document.getElementById('formMochila');
+  const mData = document.getElementById('mData');
+  const mQtd = document.getElementById('mQtd');
+  mData.valueAsDate = new Date();
+
+  formMochila.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    try{
+      if(!mData.value){ focusInvalid(mData, 'Informe a data.'); return; }
+
+      const qty = Number(mQtd.value);
+      if(!mQtd.value || !qty || qty < 1){ focusInvalid(mQtd, 'Informe quantos KitKats você levou.'); return; }
+
+      // Cada dia tem um único valor de "levados" — se já existir um registro
+      // para essa data, ele é atualizado (evita duplicar/somar por engano).
+      const existente = state.backpack.find(b => b.date === mData.value);
+      if(existente){
+        existente.qty = qty;
+        toast(`Atualizado: ${qty} KitKat(s) separados para ${dateBR(mData.value)}.`);
+      } else {
+        state.backpack.push({ id: uid(), date: mData.value, qty });
+        toast(`Separado: ${qty} KitKat(s) para ${dateBR(mData.value)}.`);
+      }
+      saveState();
+
+      formMochila.reset();
+      mData.valueAsDate = new Date();
+      renderDiario();
+    }catch(err){
+      console.error('Erro ao salvar saída para a escola:', err);
+      toast('Não foi possível salvar. Tente novamente.');
+    }
+  });
+
+  /** Agrupa compras, vendas e saídas de mochila por data, e calcula o
+   *  estoque geral acumulado dia a dia (soma de tudo que já entrou menos
+   *  tudo que já saiu até o fim daquele dia). Retorna do dia mais
+   *  recente para o mais antigo. */
   function buildDailyData(){
     const byDate = {};
     function dayOf(date){
       if(!byDate[date]){
-        byDate[date] = { date, compradas:0, vendidas:0, gastos:0, vendasBruto:0, vendasPagas:0 };
+        byDate[date] = { date, compradas:0, vendidas:0, levadas:0, gastos:0, vendasBruto:0, vendasPagas:0 };
       }
       return byDate[date];
     }
@@ -1148,17 +1203,26 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
       d.vendasBruto += Number(s.value || 0);
       if(s.status === 'pago') d.vendasPagas += Number(s.value || 0);
     });
+    state.backpack.forEach(b=>{
+      const d = dayOf(b.date);
+      d.levadas += Number(b.qty || 0);
+    });
 
     const diasOrdenados = Object.values(byDate).sort((a,b)=> a.date < b.date ? -1 : 1);
 
-    // Estoque contínuo: o estoque inicial de um dia é sempre a sobra
+    // Estoque geral contínuo: o estoque inicial de um dia é sempre a sobra
     // (estoque final) do dia anterior. Compras do dia somam a essa sobra;
     // vendas do dia subtraem, formando o estoque final do dia.
+    // (Isso é o estoque GERAL da casa/negócio — independe da mochila.)
     let estoqueAnterior = 0;
     diasOrdenados.forEach(d=>{
       d.estoqueInicial = estoqueAnterior;
       d.estoque = estoqueAnterior + d.compradas - d.vendidas; // estoque final do dia
       d.lucro = d.vendasPagas - d.gastos;
+      // Retorno para a mochila: quanto sobrou do que foi levado pra escola.
+      // Fica negativo se venderam mais do que o registrado como "levado"
+      // (sinal de que algo não foi anotado corretamente).
+      d.retorno = d.levadas - d.vendidas;
       estoqueAnterior = d.estoque;
     });
 
@@ -1185,7 +1249,7 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
 
     const list = document.getElementById('diarioList');
     if(dias.length === 0){
-      list.innerHTML = `<div class="empty-state"><div class="glyph">🗓️</div><p>Nenhuma compra ou venda registrada ainda.<br>Cadastre para ver o resumo por dia.</p></div>`;
+      list.innerHTML = `<div class="empty-state"><div class="glyph">🗓️</div><p>Nenhuma compra, venda ou saída para a escola registrada ainda.<br>Cadastre para ver o resumo por dia.</p></div>`;
       return;
     }
 
@@ -1193,21 +1257,22 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
       <div class="day-card">
         <div class="day-header">
           <div class="day-title">${formatDiaLongo(d.date)}</div>
-          <div class="day-stock-tag ${d.estoque < 0 ? 'negative' : ''}">${d.estoque} no final do dia</div>
+          <div class="day-stock-tag ${d.estoque < 0 ? 'negative' : ''}">Estoque geral: ${d.estoque} un.</div>
         </div>
-        <div class="day-carry-note">↳ Sobra do dia anterior: <b>${d.estoqueInicial} un.</b></div>
+        <div class="day-carry-note">↳ Estoque geral no início do dia: <b>${d.estoqueInicial} un.</b></div>
+        ${d.compradas > 0 ? `<div class="day-carry-note">📦 Comprado neste dia: <b>${d.compradas} un.</b></div>` : ''}
         <div class="day-metrics">
           <div class="day-metric">
-            <div class="n">${d.compradas}</div>
-            <div class="l">Comprados</div>
+            <div class="n">${d.levadas}</div>
+            <div class="l">Levados</div>
           </div>
           <div class="day-metric">
             <div class="n">${d.vendidas}</div>
             <div class="l">Vendidos</div>
           </div>
           <div class="day-metric">
-            <div class="n">${d.estoque}</div>
-            <div class="l">Estoque final</div>
+            <div class="n ${d.retorno < 0 ? 'neg' : ''}">${d.retorno}</div>
+            <div class="l">Retorno (mochila)</div>
           </div>
         </div>
         <div class="day-finance">
@@ -1295,16 +1360,21 @@ main{ max-width:520px; margin:0 auto; padding:18px 16px 8px; }
         if(!Array.isArray(data.sales) || !Array.isArray(data.purchases)){
           throw new Error('Arquivo em formato inesperado.');
         }
+        // Backups antigos (de antes do controle de mochila) não têm esse campo.
+        const backpackImportado = Array.isArray(data.backpack) ? data.backpack : [];
+
         const substituir = confirm(
           'Importar dados:\n\nOK = SUBSTITUIR todos os dados atuais pelo arquivo\nCancelar = MESCLAR com os dados atuais (sem duplicar)'
         );
         if(substituir){
-          state = { sales: data.sales, purchases: data.purchases };
+          state = { sales: data.sales, purchases: data.purchases, backpack: backpackImportado };
         } else {
           const idsVendas = new Set(state.sales.map(s=>s.id));
           const idsCompras = new Set(state.purchases.map(c=>c.id));
+          const idsMochila = new Set(state.backpack.map(b=>b.id));
           data.sales.forEach(s=>{ if(!idsVendas.has(s.id)) state.sales.push(s); });
           data.purchases.forEach(c=>{ if(!idsCompras.has(c.id)) state.purchases.push(c); });
+          backpackImportado.forEach(b=>{ if(!idsMochila.has(b.id)) state.backpack.push(b); });
         }
         saveState();
         renderResumo(); renderPendencias(); renderHistorico(); renderDiario(); updateNavBadge();
